@@ -1,13 +1,15 @@
+from os import system
+
 from aiogram import F, Router
 
 from aiogram.filters import Command, CommandStart, Filter
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, FSInputFile, Message
 
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
 
 # Внутренние зависимости проекта
-from config import settings
+from config import bot, settings
 import keyboards
 
 
@@ -131,5 +133,12 @@ async def get_pfx_cn(msg: Message, state: FSMContext):
     # Команда для запроса сертификата в УЦ
     cont_name = '\\\\.\\REGISTRY\\' + cmd_args['cont_name']
     gen_command = f'.\\cryptcp.exe -createcert -rdn "CN={cmd_args['cn']}" {cmd_args['keysize']} -cont "{cont_name}" {cmd_args['purpose']} -silent -ku -du'
+    system(gen_command)
 
-    await msg.answer(text=gen_command)
+    # Команда для экспорта pfx в файл
+    export_command = f'.\\certmgr.exe -export -dn "CN={cmd_args['cn']}" -pfx -dest ".\\files\\{cmd_args['file_name']}.pfx"'
+    system(export_command)
+
+    # Отправка готового pfx
+    pfx_file = FSInputFile(f".\\files\\{cmd_args['file_name']}.pfx")
+    await bot.send_document(chat_id=msg.chat.id, document=pfx_file)
