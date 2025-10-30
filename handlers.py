@@ -60,7 +60,7 @@ async def user_gen_pfx(msg: Message, state: FSMContext):
 
 
 @user_router.message(PfxParameters.cn)
-async def get_pfx_cn(msg: Message, state: FSMContext):
+async def get_cert_cn(msg: Message, state: FSMContext):
     """ Получение у пользователя CN сертификата """
     await state.update_data(cn=msg.text)
     await state.set_state(PfxParameters.cont_name)
@@ -68,7 +68,7 @@ async def get_pfx_cn(msg: Message, state: FSMContext):
 
 
 @user_router.message(PfxParameters.cont_name)
-async def get_pfx_cn(msg: Message, state: FSMContext):
+async def get_cont_name(msg: Message, state: FSMContext):
     """ Получение у пользователя названия контейнера """
     await state.update_data(cont_name=msg.text)
     await state.set_state(PfxParameters.keysize)
@@ -86,7 +86,7 @@ async def cb_query_select_512_bit(callback: CallbackQuery, state: FSMContext):
 
 
 @user_router.callback_query(F.data == 'select_1024_bit')
-async def cb_query_select_512_bit(callback: CallbackQuery, state: FSMContext):
+async def cb_query_select_1024_bit(callback: CallbackQuery, state: FSMContext):
     """ Выбор длины ключа в 1024 бит """
     await callback.answer()
     await state.update_data(keysize='-provtype 81 -keysize 1024')
@@ -95,16 +95,16 @@ async def cb_query_select_512_bit(callback: CallbackQuery, state: FSMContext):
 
 # Коллбэки, определяющие назначение ключа
 @user_router.callback_query(F.data == 'select_ex')
-async def cb_query_select_512_bit(callback: CallbackQuery, state: FSMContext):
+async def cb_query_select_ex(callback: CallbackQuery, state: FSMContext):
     """ Выбор ключа обмена """
     await callback.answer()
     await state.update_data(purpose='-ex')
     await state.set_state(PfxParameters.file_name)
-    await callback.message.answer('Введите название файла для pfx-контейнера')
+    await callback.message.answer('Введите название файла для pfx-контейнера (без расширения .pfx)')
 
 
 @user_router.callback_query(F.data == 'select_sg')
-async def cb_query_select_512_bit(callback: CallbackQuery, state: FSMContext):
+async def cb_query_select_sg(callback: CallbackQuery, state: FSMContext):
     """ Выбор ключа подписи """
     await callback.answer()
     await state.update_data(purpose='-sg')
@@ -113,7 +113,7 @@ async def cb_query_select_512_bit(callback: CallbackQuery, state: FSMContext):
 
 
 @user_router.callback_query(F.data == 'select_both')
-async def cb_query_select_512_bit(callback: CallbackQuery, state: FSMContext):
+async def cb_query_select_both(callback: CallbackQuery, state: FSMContext):
     """ Выбор ключа обмена и подписи """
     await callback.answer()
     await state.update_data(purpose='-both')
@@ -122,7 +122,7 @@ async def cb_query_select_512_bit(callback: CallbackQuery, state: FSMContext):
 
 
 @user_router.message(PfxParameters.file_name)
-async def get_pfx_cn(msg: Message, state: FSMContext):
+async def gen_and_send_pfx(msg: Message, state: FSMContext):
     """ Окончательная генерация pfx """
     await state.update_data(file_name=msg.text)
 
