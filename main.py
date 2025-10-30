@@ -1,5 +1,7 @@
 import asyncio
 
+from aiogram.types import BotCommand
+
 from config import bot, dispatcher
 from handlers import default_router, user_router
 
@@ -11,6 +13,12 @@ async def main():
 
     # Подключение роутера к диспетчеру
     dispatcher.include_routers(default_router, user_router)
+
+    # Список команд
+    await bot.set_my_commands([
+        BotCommand(command='start', description='Получить user id'),
+        BotCommand(command='gen_pfx', description='Сгенерировать pfx')
+    ])
 
     # Не обрабатываем данные, которые приходили на сервер до включения бота
     await bot.delete_webhook(drop_pending_updates=True)
