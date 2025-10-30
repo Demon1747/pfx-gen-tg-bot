@@ -1,12 +1,14 @@
-from aiogram import Router
+from aiogram import F, Router
 
-from aiogram.filters import Filter, CommandStart, Command
-from aiogram.types import Message
+from aiogram.filters import Command, CommandStart, Filter
+from aiogram.types import CallbackQuery, Message
 
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
 
+# Внутренние зависимости проекта
 from config import settings
+import keyboards
 
 
 class ChatFilter(Filter):
@@ -39,8 +41,6 @@ class PfxParameters(StatesGroup):
     cn = State()
     cont_name = State()
     keysize = State()
-    purpose = State()
-    is_exportable = State()
     file_name = State()
 
 
@@ -68,29 +68,68 @@ async def get_pfx_cn(msg: Message, state: FSMContext):
 @user_router.message(PfxParameters.cont_name)
 async def get_pfx_cn(msg: Message, state: FSMContext):
     """ Получение у пользователя названия контейнера """
-    await state.update_data(cn=msg.text)
-    await state.set_state(PfxParameters.purpose)
-    await msg.answer(text='Выберите длину открытого ключа')
+    await state.update_data(cont_name=msg.text)
+    await state.set_state(PfxParameters.keysize)
+    await msg.answer(text='Выберите длину открытого ключа',
+                     reply_markup=keyboards.keysize)
 
 
-@user_router.message(PfxParameters.purpose)
-async def get_pfx_cn(msg: Message, state: FSMContext):
-    """ Определение назначения ключа с помощью клавиатуры """
-    await state.set_state(PfxParameters.is_exportable)
-    await msg.answer(text='Выберите назначение ключа')
+# Коллбэки, определяющие длину ключа
+@user_router.callback_query(F.data == 'select_512_bit')
+async def cb_query_select_512_bit(callback: CallbackQuery, state: FSMContext):
+    """ Выбор длины ключа в 512 бит """
+    await callback.answer()
+    await state.update_data(keysize='-provtype 80 -keysize 512')
+    await callback.message.answer(text='Выберите тип ключа', reply_markup=keyboards.key_purpose)
 
 
-@user_router.message(PfxParameters.is_exportable)
-async def get_pfx_cn(msg: Message, state: FSMContext):
-    """ Определение экспортируемости ключа с помощью клавиатуры"""
+@user_router.callback_query(F.data == 'select_1024_bit')
+async def cb_query_select_512_bit(callback: CallbackQuery, state: FSMContext):
+    """ Выбор длины ключа в 1024 бит """
+    await callback.answer()
+    await state.update_data(keysize='-provtype 81 -keysize 1024')
+    await callback.message.answer(text='Выберите тип ключа', reply_markup=keyboards.key_purpose)
+
+
+# Коллбэки, определяющие назначение ключа
+@user_router.callback_query(F.data == 'select_ex')
+async def cb_query_select_512_bit(callback: CallbackQuery, state: FSMContext):
+    """ Выбор ключа обмена """
+    await callback.answer()
+    await state.update_data(purpose='-ex')
     await state.set_state(PfxParameters.file_name)
-    await msg.answer(text='Введите название файла для pfx-контейнера')
+    await callback.message.answer('Введите название файла для pfx-контейнера')
+
+
+@user_router.callback_query(F.data == 'select_sg')
+async def cb_query_select_512_bit(callback: CallbackQuery, state: FSMContext):
+    """ Выбор ключа подписи """
+    await callback.answer()
+    await state.update_data(purpose='-sg')
+    await state.set_state(PfxParameters.file_name)
+    await callback.message.answer('Введите название файла для pfx-контейнера')
+
+
+@user_router.callback_query(F.data == 'select_both')
+async def cb_query_select_512_bit(callback: CallbackQuery, state: FSMContext):
+    """ Выбор ключа обмена и подписи """
+    await callback.answer()
+    await state.update_data(purpose='-both')
+    await state.set_state(PfxParameters.file_name)
+    await callback.message.answer('Введите название файла для pfx-контейнера')
 
 
 @user_router.message(PfxParameters.file_name)
 async def get_pfx_cn(msg: Message, state: FSMContext):
     """ Окончательная генерация pfx """
     await state.update_data(file_name=msg.text)
+
+    # Получение данных из машины состояний и очистка состояния
+    cmd_args = await state.get_data()
     await state.clear()
 
-    await msg.answer(text='Успех!')
+    # Команда для запроса сертификата в УЦ
+    cont_name = '\\\\.\\REGISTRY\\' + cmd_args['cont_name']
+    gen_command = f'.\\cryptcp.exe -createcert -rdn "CN={cmd_args['cn']}" {cmd_args['keysize']} -cont "{cont_name}" {cmd_args['purpose']} -silent -ku -du'
+
+    await msg.answer(text=gen_command)
