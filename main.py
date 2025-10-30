@@ -16,7 +16,7 @@ async def main():
 
     # Список команд
     await bot.set_my_commands([
-        BotCommand(command='start', description='Получить user id'),
+        BotCommand(command='start', description='Узнать свой user id'),
         BotCommand(command='gen_pfx', description='Сгенерировать pfx')
     ])
 
