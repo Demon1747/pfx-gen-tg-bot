@@ -1,7 +1,7 @@
 import asyncio
 
 from config import bot, dispatcher
-from handlers import user_router
+from handlers import default_router, user_router
 
 
 async def main():
@@ -10,7 +10,7 @@ async def main():
     """
 
     # Подключение роутера к диспетчеру
-    dispatcher.include_router(user_router)
+    dispatcher.include_routers(default_router, user_router)
 
     # Не обрабатываем данные, которые приходили на сервер до включения бота
     await bot.delete_webhook(drop_pending_updates=True)

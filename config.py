@@ -13,7 +13,7 @@ env_file_path = os.path.join(os.path.dirname(
 class Settings():
     """ Класс, содержащий основные настройки бота: токен и список пользователей """
     token = ''
-    admin_ids = []
+    user_ids = []
 
     def __init__(self):
         # Загрузка переменных окружения из файла .env
