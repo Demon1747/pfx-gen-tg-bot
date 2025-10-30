@@ -109,7 +109,7 @@ async def cb_query_select_512_bit(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     await state.update_data(purpose='-sg')
     await state.set_state(PfxParameters.file_name)
-    await callback.message.answer('Введите название файла для pfx-контейнера')
+    await callback.message.answer('Введите название файла для pfx-контейнера (без расширения .pfx)')
 
 
 @user_router.callback_query(F.data == 'select_both')
@@ -118,7 +118,7 @@ async def cb_query_select_512_bit(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     await state.update_data(purpose='-both')
     await state.set_state(PfxParameters.file_name)
-    await callback.message.answer('Введите название файла для pfx-контейнера')
+    await callback.message.answer('Введите название файла для pfx-контейнера (без расширения .pfx)')
 
 
 @user_router.message(PfxParameters.file_name)
@@ -132,13 +132,13 @@ async def get_pfx_cn(msg: Message, state: FSMContext):
 
     # Команда для запроса сертификата в УЦ
     cont_name = '\\\\.\\REGISTRY\\' + cmd_args['cont_name']
-    gen_command = f'.\\cryptcp.exe -createcert -rdn "CN={cmd_args['cn']}" {cmd_args['keysize']} -cont "{cont_name}" {cmd_args['purpose']} -silent -ku -du'
+    gen_command = f'.\\cryptcp.exe -createcert -rdn "CN={cmd_args["cn"]}" {cmd_args["keysize"]} -cont "{cont_name}" {cmd_args["purpose"]} -silent -ku -du -exprt'
     system(gen_command)
 
     # Команда для экспорта pfx в файл
-    export_command = f'.\\certmgr.exe -export -dn "CN={cmd_args['cn']}" -pfx -dest ".\\files\\{cmd_args['file_name']}.pfx"'
+    export_command = f'.\\certmgr.exe -export -dn "CN={cmd_args["cn"]}" -pfx -dest ".\\files\\{cmd_args["file_name"]}.pfx" -silent'
     system(export_command)
 
-    # Отправка готового pfx
-    pfx_file = FSInputFile(f".\\files\\{cmd_args['file_name']}.pfx")
+    # Отправка готового pfx пользователю
+    pfx_file = FSInputFile(f'.\\files\\{cmd_args["file_name"]}.pfx')
     await bot.send_document(chat_id=msg.chat.id, document=pfx_file)
