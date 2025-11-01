@@ -100,7 +100,7 @@ async def cb_query_select_ex(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     await state.update_data(purpose='-ex')
     await state.set_state(PfxParameters.file_name)
-    await callback.message.answer('Введите название файла для pfx-контейнера (без расширения .pfx)')
+    await callback.message.answer('Введите название файла для pfx-контейнера')
 
 
 @user_router.callback_query(F.data == 'select_sg')
@@ -109,7 +109,7 @@ async def cb_query_select_sg(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     await state.update_data(purpose='-sg')
     await state.set_state(PfxParameters.file_name)
-    await callback.message.answer('Введите название файла для pfx-контейнера (без расширения .pfx)')
+    await callback.message.answer('Введите название файла для pfx-контейнера')
 
 
 @user_router.callback_query(F.data == 'select_both')
@@ -118,13 +118,13 @@ async def cb_query_select_both(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     await state.update_data(purpose='-both')
     await state.set_state(PfxParameters.file_name)
-    await callback.message.answer('Введите название файла для pfx-контейнера (без расширения .pfx)')
+    await callback.message.answer('Введите название файла для pfx-контейнера')
 
 
 @user_router.message(PfxParameters.file_name)
 async def gen_and_send_pfx(msg: Message, state: FSMContext):
     """ Окончательная генерация pfx """
-    await state.update_data(file_name=msg.text)
+    file_name = msg.text
 
     # Получение данных из машины состояний и очистка состояния
     cmd_args = await state.get_data()
@@ -135,7 +135,10 @@ async def gen_and_send_pfx(msg: Message, state: FSMContext):
     keysize = cmd_args['keysize']
     cont_name = '\\\\.\\REGISTRY\\' + cmd_args['cont_name']
     purpose = cmd_args['purpose']
-    file_name = cmd_args['file_name']
+
+    if '.pfx' not in file_name:
+        file_name += '.pfx'
+    print(file_name)
 
     # Команда для запроса сертификата в УЦ
     gen_command = f'.\\cryptcp.exe -createcert -rdn "CN={common_name}" {keysize} -cont "{cont_name}" {purpose} -silent -ku -du -exprt'
