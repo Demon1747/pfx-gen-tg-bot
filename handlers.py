@@ -49,7 +49,16 @@ class PfxParameters(StatesGroup):
 @default_router.message(CommandStart())
 async def user_start_cmd(msg: Message):
     """ Команда для всех: позволяет получить id пользователя """
-    await msg.answer(f'Приветствую, {msg.from_user.full_name}! Твой id: {msg.from_user.id}')
+    await msg.answer(f'Приветствую, {msg.from_user.full_name}! Твой id: {msg.from_user.id}\n'
+                     'Используйте команду /gen_pfx, чтобы выпустить PFX с ГОСТ сертификатом и ключом.')
+
+
+@default_router.message(Command('get_user_ids'))
+async def get_user_ids(msg: Message):
+    """ Команда для получения id пользователей чата """
+    users = await bot.get_chat_administrators(msg.chat.id)
+    for member in users:
+        print(member.user.id)
 
 
 @user_router.message(Command('gen_pfx'))
