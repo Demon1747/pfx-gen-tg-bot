@@ -49,16 +49,8 @@ class PfxParameters(StatesGroup):
 @default_router.message(CommandStart())
 async def user_start_cmd(msg: Message):
     """ Команда для всех: позволяет получить id пользователя """
-    await msg.answer(f'Приветствую, {msg.from_user.full_name}! Твой id: {msg.from_user.id}\n'
+    await msg.answer(f'Приветствую, {msg.from_user.full_name}!\n'
                      'Используйте команду /gen_pfx, чтобы выпустить PFX с ГОСТ сертификатом и ключом.')
-
-
-@default_router.message(Command('get_user_ids'))
-async def get_user_ids(msg: Message):
-    """ Команда для получения id пользователей чата """
-    users = await bot.get_chat_administrators(msg.chat.id)
-    for member in users:
-        print(member.user.id)
 
 
 @user_router.message(Command('gen_pfx'))
@@ -91,7 +83,7 @@ async def cb_query_select_512_bit(callback: CallbackQuery, state: FSMContext):
     """ Выбор длины ключа в 512 бит """
     await callback.answer()
     await state.update_data(keysize='-provtype 80 -keysize 512')
-    await callback.message.answer(text='Выберите тип ключа', reply_markup=keyboards.key_purpose)
+    await callback.message.edit_text(text='Выберите тип ключа', reply_markup=keyboards.key_purpose)
 
 
 @user_router.callback_query(F.data == 'select_1024_bit')
@@ -99,7 +91,7 @@ async def cb_query_select_1024_bit(callback: CallbackQuery, state: FSMContext):
     """ Выбор длины ключа в 1024 бит """
     await callback.answer()
     await state.update_data(keysize='-provtype 81 -keysize 1024')
-    await callback.message.answer(text='Выберите тип ключа', reply_markup=keyboards.key_purpose)
+    await callback.message.edit_text(text='Выберите тип ключа', reply_markup=keyboards.key_purpose)
 
 
 # Коллбэки, определяющие назначение ключа
@@ -109,7 +101,7 @@ async def cb_query_select_ex(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     await state.update_data(purpose='-ex')
     await state.set_state(PfxParameters.file_name)
-    await callback.message.answer('Введите название файла для pfx-контейнера')
+    await callback.message.edit_text('Введите название файла для pfx-контейнера')
 
 
 @user_router.callback_query(F.data == 'select_sg')
@@ -118,7 +110,7 @@ async def cb_query_select_sg(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     await state.update_data(purpose='-sg')
     await state.set_state(PfxParameters.file_name)
-    await callback.message.answer('Введите название файла для pfx-контейнера')
+    await callback.message.edit_text('Введите название файла для pfx-контейнера')
 
 
 @user_router.callback_query(F.data == 'select_both')
@@ -127,7 +119,7 @@ async def cb_query_select_both(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     await state.update_data(purpose='-both')
     await state.set_state(PfxParameters.file_name)
-    await callback.message.answer('Введите название файла для pfx-контейнера')
+    await callback.message.edit_text('Введите название файла для pfx-контейнера')
 
 
 @user_router.message(PfxParameters.file_name)
