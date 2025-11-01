@@ -1,4 +1,4 @@
-from os import system, remove
+import os
 
 from aiogram import F, Router
 
@@ -142,23 +142,37 @@ async def gen_and_send_pfx(msg: Message, state: FSMContext):
 
     # Команда для запроса сертификата в УЦ
     gen_command = f'.\\cryptcp.exe -createcert -rdn "CN={common_name}" {keysize} -cont "{cont_name}" {purpose} -silent -ku -du -exprt'
-    system(gen_command)
+    error_code = os.system(gen_command)
+    if (error_code):
+        await msg.answer('Error occured during certificate generation')
+        await cleanup(common_name, cont_name, file_path)
+        return
 
     # Команда для экспорта pfx в файл
     export_command = f'.\\certmgr.exe -export -dn "CN={common_name}" -pfx -dest "{file_path}" -silent'
-    system(export_command)
+    error_code = os.system(export_command)
+    if (error_code):
+        await msg.answer('Error occured during pfx export')
+        await cleanup(common_name, cont_name, file_path)
+        return
 
     # Отправка готового pfx пользователю
     pfx_file = FSInputFile(file_path)
     await bot.send_document(chat_id=msg.chat.id, document=pfx_file)
+    await cleanup(common_name, cont_name, file_path)
+
+
+async def cleanup(common_name, cont_name, file_path):
+    """ Функция для очистки артефактов"""
 
     # Удаление сертификата из хранилища
     delcert_command = f'.\\cryptcp.exe -delcert -nochain -u -dn "CN={common_name}" -yes'
-    system(delcert_command)
+    os.system(delcert_command)
 
     # Удаление ключа из хранилища
     deletekeyset_command = f'.\\csptest.exe -keyset -deletekeyset -container "{cont_name}"'
-    system(deletekeyset_command)
+    os.system(deletekeyset_command)
 
     # Удаление файла pfx с компьютера
-    remove(file_path)
+    if os.path.isfile(file_path):
+        os.remove(file_path)
