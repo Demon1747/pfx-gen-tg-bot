@@ -40,7 +40,7 @@ user_router.message.filter(
 # Список состояний
 class PfxParameters(StatesGroup):
     """ Состояния, отражающие процесс заполнения параметров для pfx """
-    cn = State()
+    common_name = State()
     cont_name = State()
     keysize = State()
     file_name = State()
@@ -55,14 +55,14 @@ async def user_start_cmd(msg: Message):
 @user_router.message(Command('gen_pfx'))
 async def user_gen_pfx(msg: Message, state: FSMContext):
     """ Команда для начала процесса генерации pfx """
-    await state.set_state(PfxParameters.cn)
+    await state.set_state(PfxParameters.common_name)
     await msg.answer('Введите Common Name для сертификата')
 
 
-@user_router.message(PfxParameters.cn)
+@user_router.message(PfxParameters.common_name)
 async def get_cert_cn(msg: Message, state: FSMContext):
     """ Получение у пользователя CN сертификата """
-    await state.update_data(cn=msg.text)
+    await state.update_data(common_name=msg.text)
     await state.set_state(PfxParameters.cont_name)
     await msg.answer('Введите название для ключевого контейнера')
 
@@ -130,15 +130,21 @@ async def gen_and_send_pfx(msg: Message, state: FSMContext):
     cmd_args = await state.get_data()
     await state.clear()
 
-    # Команда для запроса сертификата в УЦ
+    # Установка аргументов для команд в переменные
+    common_name = cmd_args['common_name']
+    keysize = cmd_args['keysize']
     cont_name = '\\\\.\\REGISTRY\\' + cmd_args['cont_name']
-    gen_command = f'.\\cryptcp.exe -createcert -rdn "CN={cmd_args["cn"]}" {cmd_args["keysize"]} -cont "{cont_name}" {cmd_args["purpose"]} -silent -ku -du -exprt'
+    purpose = cmd_args['purpose']
+    file_name = cmd_args['file_name']
+
+    # Команда для запроса сертификата в УЦ
+    gen_command = f'.\\cryptcp.exe -createcert -rdn "CN={common_name}" {keysize} -cont "{cont_name}" {purpose} -silent -ku -du -exprt'
     system(gen_command)
 
     # Команда для экспорта pfx в файл
-    export_command = f'.\\certmgr.exe -export -dn "CN={cmd_args["cn"]}" -pfx -dest ".\\files\\{cmd_args["file_name"]}.pfx" -silent'
+    export_command = f'.\\certmgr.exe -export -dn "CN={common_name}" -pfx -dest ".\\files\\{file_name}" -silent'
     system(export_command)
 
     # Отправка готового pfx пользователю
-    pfx_file = FSInputFile(f'.\\files\\{cmd_args["file_name"]}.pfx')
+    pfx_file = FSInputFile(f'.\\files\\{file_name}')
     await bot.send_document(chat_id=msg.chat.id, document=pfx_file)
