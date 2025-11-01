@@ -1,4 +1,4 @@
-from os import system
+from os import system, remove
 
 from aiogram import F, Router
 
@@ -138,16 +138,27 @@ async def gen_and_send_pfx(msg: Message, state: FSMContext):
 
     if '.pfx' not in file_name:
         file_name += '.pfx'
-    print(file_name)
+    file_path = '.\\files\\' + file_name
 
     # Команда для запроса сертификата в УЦ
     gen_command = f'.\\cryptcp.exe -createcert -rdn "CN={common_name}" {keysize} -cont "{cont_name}" {purpose} -silent -ku -du -exprt'
     system(gen_command)
 
     # Команда для экспорта pfx в файл
-    export_command = f'.\\certmgr.exe -export -dn "CN={common_name}" -pfx -dest ".\\files\\{file_name}" -silent'
+    export_command = f'.\\certmgr.exe -export -dn "CN={common_name}" -pfx -dest "{file_path}" -silent'
     system(export_command)
 
     # Отправка готового pfx пользователю
-    pfx_file = FSInputFile(f'.\\files\\{file_name}')
+    pfx_file = FSInputFile(file_path)
     await bot.send_document(chat_id=msg.chat.id, document=pfx_file)
+
+    # Удаление сертификата из хранилища
+    delcert_command = f'.\\cryptcp.exe -delcert -nochain -u -dn "CN={common_name}" -yes'
+    system(delcert_command)
+
+    # Удаление ключа из хранилища
+    deletekeyset_command = f'.\\csptest.exe -keyset -deletekeyset -container "{cont_name}"'
+    system(deletekeyset_command)
+
+    # Удаление файла pfx с компьютера
+    remove(file_path)
